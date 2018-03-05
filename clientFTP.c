@@ -4,12 +4,16 @@
  * echoclient.c - An echo client
  */
 #include "csapp.h"
+#include "readcmd.h"
 
 int main(int argc, char **argv)
 {
     int clientfd;
     char *host, buf[MAXLINE];
     rio_t rio;
+	int fd;
+	char *nomFichier;
+	struct cmdline *l;
 
     if (argc != 2) {
         fprintf(stderr, "usage: %s <host>\n", argv[0]);
@@ -35,13 +39,25 @@ int main(int argc, char **argv)
     
     printf("ftp> ");
     while (Fgets(buf, MAXLINE, stdin) != NULL) {
-        char *pos;
-        if ((pos=strchr(buf, '\n')) != NULL)
-            *pos = '\0';
-        
-        Rio_writen(clientfd, buf, strlen(buf));
+
+		l = readcmd(buf);
+		// Vérification de la validité de la commande
+		if(l->err){
+			continue;
+		}      
+		
+		// Envoi de la commande
+		Rio_writen(clientfd, buf, strlen(buf));
+		// Récupération de la réponse
         if (Rio_readlineb(&rio, buf, MAXLINE) > 0) {
-            Fputs(buf, stdout);
+			/***** MODIFIER A LA FIN DU PROJET ******/
+			nomFichier = "client/test.txt";	
+			//strcat(nomFichier,l->seq[0][1]);
+			/****************************************/
+			fd = open(nomFichier,O_WRONLY);
+			
+			write(fd,buf,1024);
+
         } else { // the server has prematurely closed the connection 
             break;
         }

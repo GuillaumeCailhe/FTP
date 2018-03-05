@@ -19,10 +19,21 @@ void echo(int connfd)
 
     Rio_readinitb(&rio, connfd);
     while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
-        printf("server received %u bytes\n", (unsigned int)n);
+		printf("server received %u bytes\n", (unsigned int)n);
 
+		// Retrait du \n dans la demande reçue
+        char *pos;
+        if ((pos=strchr(buf, '\n')) != NULL) {
+            *pos = '\0';
+		}
+
+		// Lecture de la commande reçue
 	    l = readcmd(buf);
-
+	
+		if (l->err) {
+			/* Syntax error, read another command */
+			printf("Erreur: %s\n", l->err);
+		}
 
 	    // Get
 		if (strcmp(l->seq[0][0],"get") == 0)  {
@@ -34,20 +45,20 @@ void echo(int connfd)
 	      		printf("Error opening file : %d\n", errno);
 		    }
 
+
+
 		    if(fgets(buffer, TAILLE_MAX_FICHIER, fp)!=NULL){
-		    	puts(buffer);
+				Rio_writen(connfd, buffer, TAILLE_MAX_FICHIER);
+				printf("Fichier envoyé !");
 		    }
+
+
+
 		    fclose(fp);
 
-			Rio_writen(connfd, buffer, TAILLE_MAX_FICHIER);
+
 		}
 
-		if (l->err) {
-			/* Syntax error, read another command */
-			printf("Erreur: %s\n", l->err);
-		}
-
-        printf("%s", buf);
         //int fd = open(buf, O_RDONLY);
         //printf()
     }

@@ -120,6 +120,7 @@ static void freecmd(struct cmdline *s)
 
 struct cmdline *readcmd(char *line)
 {
+
 	static struct cmdline *static_cmdline = 0;
 	struct cmdline *s = static_cmdline;
 	char **words;
@@ -136,7 +137,6 @@ struct cmdline *readcmd(char *line)
 		}
 		return static_cmdline = 0;
 	}
-
 	cmd = xmalloc(sizeof(char *));
 	cmd[0] = 0;
 	cmd_len = 0;
