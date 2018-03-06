@@ -12,9 +12,9 @@ void echo(int connfd)
     size_t n;
     char buf[MAXLINE];
     rio_t rio;
+	int fd;
 	struct cmdline *l;
 	char *nomFichier;
-	FILE *fp;
 	char buffer[TAILLE_MAX_FICHIER];
 
     Rio_readinitb(&rio, connfd);
@@ -39,28 +39,16 @@ void echo(int connfd)
 		if (strcmp(l->seq[0][0],"get") == 0)  {
 			nomFichier = l->seq[0][1];
 			printf("Récupération du fichier %s\n", nomFichier);
-			
-			fp = fopen(nomFichier, "r");
-		    if(fp == NULL) {
-	      		printf("Error opening file : %d\n", errno);
-		    }
+			fd = open(nomFichier,O_RDONLY);
 
-
-
-		    if(fgets(buffer, TAILLE_MAX_FICHIER, fp)!=NULL){
+		    if(read(fd,buffer,TAILLE_MAX_FICHIER) != 0){
 				Rio_writen(connfd, buffer, TAILLE_MAX_FICHIER);
 				printf("Fichier envoyé !");
 		    }
-
-
-
-		    fclose(fp);
-
-
+		
+		    close(fd);
 		}
 
-        //int fd = open(buf, O_RDONLY);
-        //printf()
     }
 }
 

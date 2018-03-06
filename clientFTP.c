@@ -1,15 +1,13 @@
 #define DEFAULT_PORT 2121
+#define TAILLE_MAX_FICHIER 1024
 
-/*
- * echoclient.c - An echo client
- */
 #include "csapp.h"
 #include "readcmd.h"
 
 int main(int argc, char **argv)
 {
     int clientfd;
-    char *host, buf[MAXLINE];
+    char *host, buf[TAILLE_MAX_FICHIER];
     rio_t rio;
 	int fd;
 	char *nomFichier;
@@ -49,14 +47,16 @@ int main(int argc, char **argv)
 		// Envoi de la commande
 		Rio_writen(clientfd, buf, strlen(buf));
 		// Récupération de la réponse
-        if (Rio_readlineb(&rio, buf, MAXLINE) > 0) {
+		int test;
+		if ((test = Rio_readnb(&rio, buf, TAILLE_MAX_FICHIER)) > 0) {
+			printf("%d",test);
 			/***** MODIFIER A LA FIN DU PROJET ******/
 			nomFichier = "client/test.txt";	
 			//strcat(nomFichier,l->seq[0][1]);
 			/****************************************/
-			fd = open(nomFichier,O_WRONLY);
-			
-			write(fd,buf,1024);
+			fd = open(nomFichier,O_WRONLY | O_CREAT);
+
+			write(fd,buf,TAILLE_MAX_FICHIER);
 
         } else { // the server has prematurely closed the connection 
             break;
