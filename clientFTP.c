@@ -1,8 +1,11 @@
 #define DEFAULT_PORT 2121
-#define TAILLE_MAX_FICHIER 1024
+#define TAILLE_MAX_FICHIER 4096
 
 #include "csapp.h"
 #include "readcmd.h"
+#include "time.h"
+
+
 
 int main(int argc, char **argv)
 {
@@ -10,8 +13,10 @@ int main(int argc, char **argv)
     char *host, buf[TAILLE_MAX_FICHIER];
     rio_t rio;
 	int fd;
-	char *nomFichier;
+	char nomFichier[50], nomDossier[20];
 	struct cmdline *l;
+	int taille, taille_totale = 0;
+	time_t debut,fin;
 
     if (argc != 2) {
         fprintf(stderr, "usage: %s <host>\n", argv[0]);
@@ -46,21 +51,25 @@ int main(int argc, char **argv)
 		
 		// Envoi de la commande
 		Rio_writen(clientfd, buf, strlen(buf));
+        
+        // Ouverture du fichier dans lequel on veut écrire
+        // AMELIORER : il ne faut l'ouvrir que si le fichier est trouvé côté serveur
+        strcpy(nomDossier,"client/");
+        strcpy(nomFichier,l->seq[0][1]);    
+        strcat(nomDossier,nomFichier);
+        fd = open(nomDossier,O_WRONLY | O_CREAT);
+
+		debut = clock();
 		// Récupération de la réponse
-		int test;
-		if ((test = Rio_readnb(&rio, buf, TAILLE_MAX_FICHIER)) > 0) {
-			printf("%d",test);
-			/***** MODIFIER A LA FIN DU PROJET ******/
-			nomFichier = "client/test.txt";	
-			//strcat(nomFichier,l->seq[0][1]);
-			/****************************************/
-			fd = open(nomFichier,O_WRONLY | O_CREAT);
-
-			write(fd,buf,TAILLE_MAX_FICHIER);
-
-        } else { // the server has prematurely closed the connection 
-            break;
-        }
+		while ((taille = Rio_readnb(&rio, buf, TAILLE_MAX_FICHIER)) > 0) {
+            if(taille == 1 && buf[0] == 0){
+                break;
+            }
+            taille_totale += taille;
+			write(fd,buf,taille);
+        } 
+        fin = clock();
+        printf("Fichier reçu ! %d octets en %d ms => %f ko/s\n",taille,(int) (fin-debut),(float) (taille/ (1+fin-debut)));
         printf("ftp> ");
     }
     Close(clientfd);

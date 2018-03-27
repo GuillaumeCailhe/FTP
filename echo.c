@@ -5,7 +5,7 @@
 #include "readcmd.h"
 #include <stdio.h>
 
-#define TAILLE_MAX_FICHIER 1024
+#define TAILLE_MAX_FICHIER 4096
 
 void echo(int connfd)
 {
@@ -16,6 +16,7 @@ void echo(int connfd)
 	struct cmdline *l;
 	char *nomFichier;
 	char buffer[TAILLE_MAX_FICHIER];
+	int taille;
 
     Rio_readinitb(&rio, connfd);
     while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
@@ -38,14 +39,18 @@ void echo(int connfd)
 	    // Get
 		if (strcmp(l->seq[0][0],"get") == 0)  {
 			nomFichier = l->seq[0][1];
-			printf("Récupération du fichier %s\n", nomFichier);
+			printf("Récupération du fichier %s par %d\n", nomFichier, connfd);
 			fd = open(nomFichier,O_RDONLY);
+			if(fd==-1){
+				printf("Fichier introuvable");
+			} else {
+				while((taille = read(fd,buffer,TAILLE_MAX_FICHIER)) > 0){
+					Rio_writen(connfd, buffer, taille);		
+				}
+				buffer[0] = 0;
+				Rio_writen(connfd,buffer,1);
+			}
 
-		    if(read(fd,buffer,TAILLE_MAX_FICHIER) != 0){
-				Rio_writen(connfd, buffer, TAILLE_MAX_FICHIER);
-				printf("Fichier envoyé !");
-		    }
-		
 		    close(fd);
 		}
 
