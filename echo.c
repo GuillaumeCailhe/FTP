@@ -56,7 +56,6 @@ void echo(int connfd)
 					taille = read(fd,buffer,TAILLE_MAX_BLOC);
 					taille_actuelle += taille;
 					Rio_writen(connfd, buffer, taille);	
-					printf("%d\n",taille);	
 				}
 				printf("Fichier envoyé\n");
 			}

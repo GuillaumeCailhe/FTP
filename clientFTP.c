@@ -59,7 +59,12 @@ int main(int argc, char **argv)
         strcpy(nomDossier,"client/");
         strcpy(nomFichier,l->seq[0][1]);    
         strcat(nomDossier,nomFichier);
-        fd = open(nomDossier,O_WRONLY | O_CREAT);
+        char *pos;
+        if ((pos=strchr(nomDossier, '\n')) != NULL) {
+            *pos = '\0';
+        }
+
+        fd = open(nomDossier,O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG);
 
 		debut = clock();
 		Rio_readnb(&rio,&taille_totale,sizeof(int));
@@ -75,6 +80,7 @@ int main(int argc, char **argv)
         fin = clock();
         printf("Fichier reçu ! %d octets en %d ms => %f ko/s\n",taille_totale,(int) (fin-debut),(float) (taille/ (1+fin-debut)));
         printf("ftp> ");
+        close(fd);
     }   
     Close(clientfd);
     exit(0);
