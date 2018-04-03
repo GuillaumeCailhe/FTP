@@ -1,5 +1,7 @@
 #define DEFAULT_PORT 2121
-#define TAILLE_MAX_FICHIER 4096
+
+#define TAILLE_MAX_FICHIER 4
+#define TAILLE_MAX_BLOC 1024
 
 #include "csapp.h"
 #include "readcmd.h"
@@ -15,7 +17,7 @@ int main(int argc, char **argv)
 	int fd;
 	char nomFichier[50], nomDossier[20];
 	struct cmdline *l;
-	int taille, taille_totale = 0;
+	uint32_t taille, taille_totale, taille_restante;
 	time_t debut,fin;
 
     if (argc != 2) {
@@ -60,18 +62,20 @@ int main(int argc, char **argv)
         fd = open(nomDossier,O_WRONLY | O_CREAT);
 
 		debut = clock();
+		Rio_readnb(&rio,&taille_totale,sizeof(int));
+		taille_restante = taille_totale;
+
 		// Récupération de la réponse
-		while ((taille = Rio_readnb(&rio, buf, TAILLE_MAX_FICHIER)) > 0) {
-            if(taille == 1 && buf[0] == 0){
-                break;
-            }
-            taille_totale += taille;
+		while (taille_restante > 0) {
+            int taille_attendue = (TAILLE_MAX_BLOC < taille_restante ? TAILLE_MAX_BLOC : taille_restante);
+			taille = Rio_readnb(&rio, buf, taille_attendue);
+            taille_restante -= taille;
 			write(fd,buf,taille);
         } 
         fin = clock();
-        printf("Fichier reçu ! %d octets en %d ms => %f ko/s\n",taille,(int) (fin-debut),(float) (taille/ (1+fin-debut)));
+        printf("Fichier reçu ! %d octets en %d ms => %f ko/s\n",taille_totale,(int) (fin-debut),(float) (taille/ (1+fin-debut)));
         printf("ftp> ");
-    }
+    }   
     Close(clientfd);
     exit(0);
 }
