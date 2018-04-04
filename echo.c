@@ -5,7 +5,6 @@
 #include "readcmd.h"
 #include <stdio.h>
 
-#define TAILLE_MAX_FICHIER 4
 #define TAILLE_MAX_BLOC 1024
 
 void echo(int connfd)
@@ -16,14 +15,14 @@ void echo(int connfd)
 	int fd;
 	struct cmdline *l;
 	char *nomFichier;
-	char buffer[TAILLE_MAX_FICHIER];
-	int taille, taille_actuelle = 0;
+	char buffer[TAILLE_MAX_BLOC];
+	int taille, taille_restante, fsize;
 
     Rio_readinitb(&rio, connfd);
     while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
 		//printf("server received %u bytes\n", (unsigned int)n);
 
-		// Retrait du \n dans la demande reçue
+		// Retrait du \n dans la commande
         char *pos;
         if ((pos=strchr(buf, '\n')) != NULL) {
             *pos = '\0';
@@ -44,25 +43,30 @@ void echo(int connfd)
 			
 			fd = open(nomFichier,O_RDONLY);
 			if(fd==-1){
+				fsize = -1;
+				Rio_writen(connfd, &fsize,sizeof(int));
 				printf("Fichier introuvable\n");
 			} else { // Fichier trouvé, on l'envoie
 
 				// Récupération et envoi de la taille du fichier
-				int fsize = lseek(fd, 0, SEEK_END);
+				fsize = lseek(fd, 0, SEEK_END);
 				lseek(fd,0,SEEK_SET);
-				Rio_writen(connfd, &fsize,TAILLE_MAX_FICHIER);
-
-				while(taille_actuelle < fsize){
+				Rio_writen(connfd, &fsize,sizeof(int));
+				taille_restante = fsize;
+				while(taille_restante > 0){
 					taille = read(fd,buffer,TAILLE_MAX_BLOC);
-					taille_actuelle += taille;
+					taille_restante -= taille;
 					Rio_writen(connfd, buffer, taille);	
 				}
-				printf("Fichier envoyé\n");
+				printf("Fichier envoyé (%d octets)\n", fsize);
 			}
 
 		    close(fd);
 		}
 
     }
+
+    printf("Client %d deconnecté\n",connfd);
+
 }
 

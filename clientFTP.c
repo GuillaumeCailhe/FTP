@@ -1,6 +1,5 @@
 #define DEFAULT_PORT 2121
 
-#define TAILLE_MAX_FICHIER 4
 #define TAILLE_MAX_BLOC 1024
 
 #include "csapp.h"
@@ -12,13 +11,13 @@
 int main(int argc, char **argv)
 {
     int clientfd;
-    char *host, buf[TAILLE_MAX_FICHIER];
+    char *host, buf[TAILLE_MAX_BLOC];
     rio_t rio;
-	int fd;
-	char nomFichier[50], nomDossier[20];
-	struct cmdline *l;
-	uint32_t taille, taille_totale, taille_restante;
-	time_t debut,fin;
+    int fd;
+    char nomFichier[50], nomDossier[20];
+    struct cmdline *l;
+    int taille, taille_totale, taille_attendue, taille_restante;
+    time_t debut,fin;
 
     if (argc != 2) {
         fprintf(stderr, "usage: %s <host>\n", argv[0]);
@@ -45,42 +44,61 @@ int main(int argc, char **argv)
     printf("ftp> ");
     while (Fgets(buf, MAXLINE, stdin) != NULL) {
 
-		l = readcmd(buf);
-		// Vérification de la validité de la commande
-		if(l->err){
-			continue;
-		}      
-		
-		// Envoi de la commande
-		Rio_writen(clientfd, buf, strlen(buf));
+        l = readcmd(buf);
         
-        // Ouverture du fichier dans lequel on veut écrire
-        // AMELIORER : il ne faut l'ouvrir que si le fichier est trouvé côté serveur
-        strcpy(nomDossier,"client/");
-        strcpy(nomFichier,l->seq[0][1]);    
-        strcat(nomDossier,nomFichier);
         char *pos;
-        if ((pos=strchr(nomDossier, '\n')) != NULL) {
+        if ((pos=strchr(l->seq[0][0], '\n')) != NULL) {
             *pos = '\0';
         }
 
-        fd = open(nomDossier,O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG);
+        if(strcmp(l->seq[0][0],"bye")==0){
+            printf("Au revoir !\n");
+            Close(clientfd);
+            exit(0);
+        }
+        else if(strcmp(l->seq[0][0],"get")==0){
+            // Envoi de la commande
+            Rio_writen(clientfd, buf, strlen(buf));
+            
+            // Récupération de la réponse
+            debut = clock();
+            Rio_readnb(&rio,&taille_totale,sizeof(int));
 
-		debut = clock();
-		Rio_readnb(&rio,&taille_totale,sizeof(int));
-		taille_restante = taille_totale;
+            if(taille_totale == -1){
+                printf("Fichier inexistant.\n");
+            } else {
+                // Ouverture du fichier dans lequel on veut écrire
+                // AMELIORER : il ne faut l'ouvrir que si le fichier est trouvé côté serveur
+                strcpy(nomDossier,"client/");
+                strcpy(nomFichier,l->seq[0][1]);    
+                strcat(nomDossier,nomFichier);
+                char *pos;
+                if ((pos=strchr(nomDossier, '\n')) != NULL) {
+                    *pos = '\0';
+                }
+                fd = open(nomDossier,O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG);
+                
+                taille_restante = taille_totale;
+                taille_attendue = (TAILLE_MAX_BLOC < taille_restante ? TAILLE_MAX_BLOC : taille_restante);
+                while (taille_restante > 0 && (taille = Rio_readnb(&rio, buf, taille_attendue)) > 0) {
+                    taille_restante -= taille;
+                    printf("%d\n",taille);
+                    write(fd,buf,taille);
+                    taille_attendue = (TAILLE_MAX_BLOC < taille_restante ? TAILLE_MAX_BLOC : taille_restante);
+                } 
+                fin = clock();
+                close(fd);
 
-		// Récupération de la réponse
-		while (taille_restante > 0) {
-            int taille_attendue = (TAILLE_MAX_BLOC < taille_restante ? TAILLE_MAX_BLOC : taille_restante);
-			taille = Rio_readnb(&rio, buf, taille_attendue);
-            taille_restante -= taille;
-			write(fd,buf,taille);
-        } 
-        fin = clock();
-        printf("Fichier reçu ! %d octets en %d ms => %f ko/s\n",taille_totale,(int) (fin-debut),(float) (taille/ (1+fin-debut)));
+                if(taille_restante > 0){
+                    printf("Fichier incomplet, manque %d octets\n", taille_restante);
+                } else {
+                    printf("Fichier reçu ! %d octets en %d ms => %f ko/s\n",taille_totale,(int) (fin-debut),(float) (taille/ (1+fin-debut)));
+                }
+            }
+        }
+
+    
         printf("ftp> ");
-        close(fd);
     }   
     Close(clientfd);
     exit(0);
