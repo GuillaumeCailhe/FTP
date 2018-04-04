@@ -17,6 +17,7 @@ void echo(int connfd)
 	char *nomFichier;
 	char buffer[TAILLE_MAX_BLOC];
 	int taille, taille_restante, fsize;
+	int octet_debut; 
 
     Rio_readinitb(&rio, connfd);
     while ((n = Rio_readlineb(&rio, buf, MAXLINE)) != 0) {
@@ -50,9 +51,13 @@ void echo(int connfd)
 
 				// Récupération et envoi de la taille du fichier
 				fsize = lseek(fd, 0, SEEK_END);
-				lseek(fd,0,SEEK_SET);
 				Rio_writen(connfd, &fsize,sizeof(int));
-				taille_restante = fsize;
+	
+				// Récupération de l'octet de début et déplacement du curseur dans le fichier
+				Rio_readnb(&rio,&octet_debut, sizeof(int));
+				lseek(fd,octet_debut,SEEK_SET);
+
+				taille_restante = fsize-octet_debut;
 				while(taille_restante > 0){
 					taille = read(fd,buffer,TAILLE_MAX_BLOC);
 					taille_restante -= taille;

@@ -16,6 +16,7 @@ int main(int argc, char **argv)
     int fd;
     char nomFichier[50], nomDossier[20];
     struct cmdline *l;
+    int octet_debut;
     int taille, taille_totale, taille_attendue, taille_restante;
     time_t debut,fin;
 
@@ -68,7 +69,6 @@ int main(int argc, char **argv)
                 printf("Fichier inexistant.\n");
             } else {
                 // Ouverture du fichier dans lequel on veut écrire
-                // AMELIORER : il ne faut l'ouvrir que si le fichier est trouvé côté serveur
                 strcpy(nomDossier,"client/");
                 strcpy(nomFichier,l->seq[0][1]);    
                 strcat(nomDossier,nomFichier);
@@ -76,13 +76,21 @@ int main(int argc, char **argv)
                 if ((pos=strchr(nomDossier, '\n')) != NULL) {
                     *pos = '\0';
                 }
-                fd = open(nomDossier,O_WRONLY | O_CREAT, S_IRWXU | S_IRWXG);
-                
-                taille_restante = taille_totale;
+
+				fd = open(nomDossier, O_WRONLY | O_CREAT | O_APPEND, S_IRWXU | S_IRWXG);
+           		octet_debut = lseek(fd, 0, SEEK_END);
+           		if(octet_debut > 0){
+           			octet_debut -= 1;
+           		}
+           		printf("Début du téléchargement à l'octet %d\n",octet_debut);
+
+                Rio_writen(clientfd, &octet_debut,sizeof(int));
+
+                taille_restante = taille_totale - octet_debut;
                 taille_attendue = (TAILLE_MAX_BLOC < taille_restante ? TAILLE_MAX_BLOC : taille_restante);
                 while (taille_restante > 0 && (taille = Rio_readnb(&rio, buf, taille_attendue)) > 0) {
                     taille_restante -= taille;
-                    printf("%d\n",taille);
+                    printf("%d\n",buf[0]);
                     write(fd,buf,taille);
                     taille_attendue = (TAILLE_MAX_BLOC < taille_restante ? TAILLE_MAX_BLOC : taille_restante);
                 } 
@@ -92,7 +100,7 @@ int main(int argc, char **argv)
                 if(taille_restante > 0){
                     printf("Fichier incomplet, manque %d octets\n", taille_restante);
                 } else {
-                    printf("Fichier reçu ! %d octets en %d ms => %f ko/s\n",taille_totale,(int) (fin-debut),(float) (taille/ (1+fin-debut)));
+                    printf("Fichier reçu ! %d octets en %d ms => %f ko/s\n",taille_totale-octet_debut,(int) (fin-debut),(float) ((taille_totale-octet_debut)/ (1+fin-debut)));
                 }
             }
         }
