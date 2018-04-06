@@ -22,12 +22,12 @@ int main(int argc, char **argv)
     // Création des processus fils qui vont gérer les connexions
     pid_t pid;
     for(int i = 0; i < NPROC; i++){
-        if((pid = Fork()) > 0){
+        if((pid = Fork()) == 0){
             break;
         }
     }
 
-    if (pid > 0){
+    if (pid == 0){
         while (1) {
         
         }
