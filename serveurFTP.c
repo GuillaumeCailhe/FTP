@@ -75,7 +75,7 @@ void traiterRequete(int clientfd, int esclavefd){
 int main(int argc, char **argv)
 {
     Signal(SIGINT,handler);
-
+    
     int clients[MAX_CLIENT]; // Contient les connfd des clients connectés
     int esclaves[NPROC]; // connfd des serveurs esclaves
 
