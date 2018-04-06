@@ -90,7 +90,6 @@ int main(int argc, char **argv)
                 taille_attendue = (TAILLE_MAX_BLOC < taille_restante ? TAILLE_MAX_BLOC : taille_restante);
                 while (taille_restante > 0 && (taille = Rio_readnb(&rio, buf, taille_attendue)) > 0) {
                     taille_restante -= taille;
-                    printf("%d\n",buf[0]);
                     write(fd,buf,taille);
                     taille_attendue = (TAILLE_MAX_BLOC < taille_restante ? TAILLE_MAX_BLOC : taille_restante);
                 } 
